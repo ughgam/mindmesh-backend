@@ -3,11 +3,16 @@ from sentence_transformers import SentenceTransformer
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 
-print("LOADING EMBEDDING MODEL...")
+# Lazy load the model to avoid blocking startup
+model = None
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
-print("MODEL LOADED")
+def get_model():
+    global model
+    if model is None:
+        print("LOADING EMBEDDING MODEL...")
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        print("MODEL LOADED")
+    return model
 
 # Use environment variable for chroma path, default to ./chroma_db
 CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
@@ -37,7 +42,7 @@ def index_article_in_vector_db(article_id: int, user_id: int, text: str, title: 
 
     print("CHUNKS CREATED:", len(chunks))
 
-    embeddings = model.encode(chunks).tolist()
+    embeddings = get_model().encode(chunks).tolist()
 
     print("EMBEDDINGS CREATED")
 
@@ -69,7 +74,7 @@ def search_similar_chunks(query: str, user_id: int, n_results: int = 5):
     if not query:
         return None
         
-    query_embedding = model.encode(query).tolist()
+    query_embedding = get_model().encode(query).tolist()
     
     results = collection.query(
         query_embeddings=[query_embedding],
